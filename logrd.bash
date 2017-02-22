@@ -188,6 +188,17 @@ _logrd_dup-fd () {
     eval "exec $dst>&$src" || _logrd_errors "error duping $1 >& $2"
 }
 
+_logrd_move-fd () {
+    local dst=${1#/dev/fd/}
+    local src=${2#/dev/fd/}
+
+    # bash 3.x won't close $dst before redirection, and the redirect
+    # will silently fail.
+    _logrd_close-fd $dst
+
+    eval "exec $dst>&$src-" || _logrd_errors "error moving: $1>&$2-"
+}
+
 _logrd_redirect-fd () {
     local dst=${1#/dev/fd/}
 
@@ -305,9 +316,7 @@ _logrd_restore-fds () {
     local -a errors
     while (( ++idx < nfds )); do
 
-    	_logrd_dup-fd ${_logrd_RESTORE_FDS_ORIG[$idx]} ${_logrd_RESTORE_FDS_DUPS[$idx]} \
-    	    && _logrd_close-fd ${_logrd_RESTORE_FDS_DUPS[$idx]} \
-    	    || errors+=( $_{logrd_RESTORE_FDS_ORIG[$idx]} )
+    	_logrd_move-fd ${_logrd_RESTORE_FDS_ORIG[$idx]} ${_logrd_RESTORE_FDS_DUPS[$idx]} || errors+=( $_{logrd_RESTORE_FDS_ORIG[$idx]} )
     done
 
     (( ! ${#errors[*]} )) || _logrd_errors  "error restoring fds: ${errors[*]}" || return
