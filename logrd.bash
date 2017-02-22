@@ -438,10 +438,23 @@ logrd-redirect-streams () {
     local -a copy_to_console=( $_logrd_COPY_TO_CONSOLE )
     local -a copy_to_stream=( $_logrd_COPY_TO_STREAM )
 
-    local file=$1
+    local target_type=file
+    if [[ $1 == '--fd' ]]; then
+	shift
+	target_type=fd
+    elif [[ $1 == '--file' ]]; then
+	target_type=file
+	shift
+    fi
+
+    local target=$1
     shift
 
-    [[ $file != '' ]] || _logrd_error "file parameter was not specified" || return
+    [[ $target != '' ]] || _logrd_error "target parameter was not specified" || return
+
+    if [[ $target_type == fd ]]; then
+	target=${target#/dev/fd/}
+    fi
 
     local var
     local idx
@@ -496,10 +509,6 @@ logrd-redirect-streams () {
 
     local -a dups=( ${_logrd_RESERVE_FDS[*]} )
 
-    # create a single fd to redirect to file, then dup it for
-    # all of the streams
-
-
     local nfds=${#fds[*]}
 
     # if only one stream is being redirected, can just perform a
@@ -509,11 +518,20 @@ logrd-redirect-streams () {
 
     local file_redir
     if (( nfds == 1 )) ; then
-	file_redir=">$file"
+
+	if [[ $target_type == file ]]; then
+	    target_redir="$target"
+	else
+	    target_redir="&$target"
+	fi
+
     else
-	_logrd_reserve-fds --redirect $file
-	local file_fd=${_logrd_RESERVE_FDS#/dev/fd/}
-	file_redir="&$file_fd"
+	if [[ $target_type == file ]]; then
+	    _logrd_reserve-fds --redirect $target
+	    target=${_logrd_RESERVE_FDS#/dev/fd/}
+	fi
+
+	target_redir="&$target"
     fi
 
 
@@ -526,33 +544,33 @@ logrd-redirect-streams () {
 
 	# copied      copy         copy
         # to_console  to_console   to_stream
-        # 0           0            0           => fd > file
-        # 1           0            0           => fd > >(tee dup_fd  > file )
-        # 0           1            0           => fd > >(tee console > file )
-        # 1           1            0           => fd > >(tee dup_fd  > file )
-        # 0           0            1           => fd > >(tee dup_fd  > file )
-        # 1           0            1           => fd > >(tee dup_fd  > file )
-        # 0           1            1           => fd > >(tee >(tee dup_fd > console ) > file )
-        # 1           1            1           => fd > >(tee dup_fd  > file )
+        # 0           0            0           => fd > target
+        # 1           0            0           => fd > >(tee dup_fd  > target )
+        # 0           1            0           => fd > >(tee console > target )
+        # 1           1            0           => fd > >(tee dup_fd  > target )
+        # 0           0            1           => fd > >(tee dup_fd  > target )
+        # 1           0            1           => fd > >(tee dup_fd  > target )
+        # 0           1            1           => fd > >(tee >(tee dup_fd > console ) > target )
+        # 1           1            1           => fd > >(tee dup_fd  > target )
 
 	# or
 
-        # 0           0            0           => fd > file
-        # 0           1            0           => fd > >(tee console > file )
-        # 0           1            1           => fd > >(tee >(tee dup_fd > console ) > file )
+        # 0           0            0           => fd > target
+        # 0           1            0           => fd > >(tee console > target )
+        # 0           1            1           => fd > >(tee >(tee dup_fd > console ) > target )
 
 	# everything else
-        # ?           ?            ?           => fd > >(tee dup_fd  > file )
+        # ?           ?            ?           => fd > >(tee dup_fd  > target )
 
 
 
 	if (( ! copied_to_console && ! copy_to_console && ! copy_to_stream )) ; then
 
-	    _logrd_redirect-fd $fd $file_redir || break
+	    _logrd_redirect-fd $fd $target_redir || break
 
 	elif (( ! copied_to_console && copy_to_console && ! copy_to_stream )) ; then
 
-	    _logrd_tee-fd $fd "&$console_fd" $file_redir || break
+	    _logrd_tee-fd $fd "&$console_fd" $target_redir || break
 
 	elif (( ! copied_to_console && copy_to_console && copy_to_stream )) ; then
 
@@ -561,13 +579,13 @@ logrd-redirect-streams () {
 	    dup_fd=${_logrd_RESERVE_FDS[0]}
 	    tmp_fd=${_logrd_RESERVE_FDS[1]}
 	    _logrd_tee-fd $tmp_fd "&$dup_fd" "&$console_fd" || break
-	    _logrd_tee-fd $fd "&$tmp_fd" $file_redir || break
+	    _logrd_tee-fd $fd "&$tmp_fd" $target_redir || break
 
 	else
 
 	    _logrd_reserve-fds --dup $fd || break
 	    dup_fd=$_logrd_RESERVE_FDS
-	    _logrd_tee-fd $fd "&$dup_fd" $file_redir || break
+	    _logrd_tee-fd $fd "&$dup_fd" $target_redir || break
 
 	fi
 

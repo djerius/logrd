@@ -224,6 +224,62 @@ LOGRD_STARTING_SAVE_FD=20
     is "$stdlog" "$teststdlog" 'stdlog test string'
 )}
 
+@test "redirect stdout, target is fd" {(
+
+    set -eu
+    save-fds
+    source logrd.bash
+    tmpdir=$(mktmpdir)
+
+    trap "rm -rf $tmpdir" EXIT
+    trap "trap - EXIT ; error See $tmpdir" ERR
+
+    logfile=$tmpdir/output
+    exec 200>$logfile
+
+    ok logrd-redirect-streams --fd 200 stdout '${logrd_ERRORS[*]}'
+
+    teststr=$(date)
+
+    echo "$teststr"
+
+    ok logrd-restore-streams stdout '${logrd_ERRORS[*]}'
+
+    output=$(< $logfile )
+
+    is "$output" "$teststr" 'stdout test string'
+)}
+
+@test "redirect stdout & stderr to fd target" {(
+
+    set -eu
+    save-fds
+    source logrd.bash
+
+    tmpdir=$(mktmpdir)
+
+    trap "rm -rf $tmpdir" EXIT
+    trap "trap - EXIT ; error See $tmpdir" ERR
+
+    logfile=$tmpdir/output
+    exec 200>$logfile
+
+    ok logrd-redirect-streams --fd 200 stdout stderr '${logrd_ERRORS[*]}'
+
+    teststderr="stderr $(date)"
+    teststdout="stdout $(date)"
+
+    echo "$teststderr" >&2
+    echo "$teststdout"
+
+    ok logrd-restore-streams stderr stdout '${logrd_ERRORS[*]}'
+
+    output=$(< $logfile )
+
+    is "$output" "$teststderr"$'\n'"$teststdout" 'test string'
+)}
+
+
 @test "copy to console" {(
 
     set -eu
