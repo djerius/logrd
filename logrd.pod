@@ -1,0 +1,422 @@
+=head1 NAME
+
+logrd - bash logging and stream redirection library
+
+=head1 SYNOPSIS
+
+  source logrd.bash <options>
+
+  logrd-set level warn
+
+  log-warn "this is a warning"
+
+  # log to a file, but copy the messages to the console
+  logrd-redirect-stream file --copy-to-console stdlog
+
+  log-warn "this warning goes to both file and the console"
+
+
+=head1 DESCRIPTION
+
+B<logrd> is a bash library which combines a simple logging facility
+with the ability to redirect program output as well as logging to
+multiple output streams.
+
+=head2 Stream Redirection
+
+B<logrd> improves upon the standard stream redirection schemes by
+allowing writing to multiple streams.  For example,
+
+  echo "this goes to the console"
+
+  logrd-redirect-stream file1 --copy-to-console stdout
+
+  echo "this goes to file1 and the console"
+
+  logrd-redirect-stream file2 --copy-to-stream stdout
+
+  echo "this goes to file1, file2, and the console"
+
+  logrd-restore-streams stdout
+
+  echo "this goes to the console"
+
+I<Writing to streams other than stderr will be buffered.>
+
+Multiple streams may be directed to a single file:
+
+  logrd-redirect-stream file1 stdout stderr
+
+
+=head2 Nested stream redirection
+
+B<logrd> does not keep a history of stream redirection.  The
+L</logrd-restore-streams> command restores a stream to the state it
+was when B<logrd> was loaded.  If the ability to restore streams
+to intermediate states is required, use subshells:
+
+   source logrd.bash
+   echo "this goes to the console"
+
+   logrd-redirect-stream file1 --copy-to-console stdout
+   echo "this goes to file1 and the console"
+
+   (
+     logrd-redirect-stream file2 stdout
+     echo "this goes to file1, file2, and the console"
+   )
+
+   echo "this goes to file1 and the console"
+
+
+=head2 Logging
+
+B<logrd> provides commands which write to the logging stream
+(C<stdlog>).  It follows the standard paradigm of mutiple levels of
+logging:
+
+  error warn notice info debug
+
+and provides commands specific to each level, e.g.
+
+  log-error "this is at level ERROR"
+
+as well as the level agnostic command C<log-to>:
+
+  log-to warn "this is a warning"
+
+
+The logging stream, I<stdlog>, writes by default to the C<stderr>
+stream, but may be redirected:
+
+  logrd-redirect-stream file stdlog
+
+The file descriptor associated with I<stdlog> may be obtained via
+the L</logrd-get> command.
+
+
+=head2 Background
+
+Stream redirection in the bash shell is usually accomplished either by
+redirecting individual commands' output stream
+
+  echo "to stdout" > file
+
+or by redirecting the shell's streams:
+
+  exec >file
+  echo "to stdout"
+
+
+In the latter case child processes will inherit the redirected streams, and
+all further output sent to the standard output stream will end up in I<file>.
+
+It's also possible to send multiple streams to the same file. The following
+redirects the standard output stream, and then makes the standard error stream
+write to the standard output stream.
+
+  exec >file
+  exec 2>&1
+
+Thus,
+
+  echo "to stdout"
+  echo "to stderr" >&2
+
+results in both phrases being written to I<file>.
+
+=head1 LOADING
+
+To load the B<logrd> library, simply source it:
+
+  source logrd.bash I<options>
+
+The available options are:
+
+=over
+
+=item C<--copy-to-console>
+
+=item C<--no-copy-to-console>
+
+Copy (or don't) all redirected streams to the console (that is, to the streams in
+existence when B<logrd> was loaded).  For example, this causes
+
+  logrd-redirect-stream file stdout
+  ls
+
+to send the output of C<ls> to both I<file> and to the standard output stream
+
+L</logrd-redirect-stream> will also accept this option to restrict its application
+to a single redirection.
+
+=item C<--copy-to-stream>
+
+=item C<--no-copy-to-stream>
+
+Copy (or don't) all redirected streams to their original destination as well as the new one.
+
+For example, this causes
+
+  logrd-redirect-stream file1 stdout
+  logrd-redirect-stream file2 stdout
+  ls
+
+to send the output of C<ls> to I<file1>, I<file2>, and to the standard output stream.
+
+L</logrd-redirect-stream> will also accept this option to restrict its application
+to a single redirection.
+
+=item C<-q>
+
+=item C<--quiet>
+
+Set the logging level to C<error>.
+
+=item C<--env-prefix> I<string>
+
+=item C<--env-prefix>=I<string>
+
+Set the prefix for environment variables.  See L</ENVIRONMENT>.
+
+=item C<--starting-save-fd> I<integer>
+
+=item C<--starting-save-fd>=I<integer>
+
+For older versions of bash (that's you, Apple) B<logrd> needs to
+search for unused file descriptors. This option specifies the first
+descriptor at which to start looking.  It defaults to C<20>, but may
+be set higher if there are conflicts with other code.
+
+=item C<--stdlog-fd> I<integer>
+
+=item C<--stdlog-fd>=I<integer>
+
+By default the log stream I<stdlog> is sent to the I<stderr> stream.
+This may be changed with this option.  The specified file descriptor
+must already be open.
+
+
+=item C<--log-level> I<level>
+
+=item C<--log-level>=I<level>
+
+Set the logging level.  It defaults to C<warn>.  It may be one of
+
+  error warn notice info debug
+
+=back
+
+
+=head1 FUNCTIONS
+
+=head2 Errors
+
+All functions return a status code, and push error messages onto the
+C<logrd_ERRORS> array.  There may be multiple error messages in the
+array; the messages at the end of the array arise from higher up the
+calling sequence within the library.
+
+=head3 logrd_has-error
+
+ if logrd_has-error ; then
+   handle errors
+ fi
+
+Returns true if the C<logrd_ERRORS> array contains errors.
+
+
+=head2 Stream functions
+
+There are three streams upon which B<logrd> operates:
+
+=over
+
+=item stdout
+
+the standard output stream (file descriptor 1)
+
+=item stderr
+
+the standard error stream (file descriptor 2)
+
+=item stdlog
+
+the "standard logging" stream.  By default this writes to I<stderr>.  Use L</logrd-get> to
+obtain its file descriptor.
+
+=back
+
+
+=head3 logrd-redirect-streams
+
+  logrd-redirect-streams [-fd|-file] target [global options] stream [ stream options ] ...
+
+Redirect one or more streams to a I<target>.  A target may be either a
+file descriptor or a file name.  It defaults to a filename; use the
+C<-fd> option to indicate it is a file descriptor.
+
+The following options are available.  If they are specified I<before> the streams,
+they will apply to all streams, otherwise they apply to the stream which precedes them.
+
+=over
+
+=item C<--copy-to-console>
+
+=item C<--no-copy-to-console>
+
+Copy (or don't) redirected streams to the console (that is, to the streams in
+existence when B<logrd> was loaded).  For example, this
+
+  logrd-redirect-stream file --copy-to-console stdout stderr
+
+causes all output sent to I<stdout> and I<stderr> to be written to I<file> as well
+as to the console I<stdout> and I<stderr> streams.
+
+=item C<--copy-to-stream>
+
+=item C<--no-copy-to-stream>
+
+Copy (or don't) redirected streams to their original destination as well as the new one.
+
+For example,
+
+  logrd-redirect-stream file1 stdout
+  logrd-redirect-stream file2 --copy-to-stream stdout
+
+causes output sent to I<stdout> to be written to both I<file1> and I<file2>
+
+=back
+
+=head3 logrd-restore-streams
+
+  logrd-restore-streams stream stream
+
+Restore the streams to their state when B<logrd> was loaded.
+
+=head2 Logging functions
+
+=head3 log-to
+
+  log-to <log-level> message
+
+Write the message to the I<stdlog> stream if the log level is at least
+that specified.  The I<log-level> may be one of
+
+  error warn notice info debug
+
+The current log level may be obtained via L</logrd-get>
+
+=head3 log-error
+
+=head3 log-warn
+
+=head3 log-notice
+
+=head3 log-info
+
+=head3 log-debug
+
+       log-error  message
+       log-warn   message
+       log-notice message
+       log-info   message
+       log-debug  message
+
+Write the message to the I<stdlog> stream if the log level is at least
+that specified.
+
+
+=head2 Global Attributes
+
+=head3 logrd-set
+
+  logrd-set attribute value
+
+Set a global attribute.  The following attributes are available:
+
+=over
+
+=item C<level>
+
+Set the logging level; it may be one of
+
+  error warn notice info debug
+
+=back
+
+
+=head3 logrd-get
+
+  logrd-get attribute
+
+Retrieve an attribute.  Boolean attributes are returned as status values, e.g.
+
+  logrd-get copy_to_console && echo 'global copy_to_console is set!'
+
+Other attributes are output to I<stdout>, e.g.
+
+  log_level=$(logrd-get level)
+
+The attributes are
+
+=over
+
+=item C<level>
+
+The logging level
+
+=item C<copy_to_console>
+
+A boolean which is true if the global C<copy_to_console> flag is set.
+
+=item C<copy_to_stream>
+
+A boolean which is true if the global C<copy_to_stream> flag is set.
+
+=item C<copied_to_console>
+
+  logrd-get copied_to_console stream
+
+True if the specified I<stream> is being copied to the console.
+
+=item C<starting_save_fd>
+
+The starting file descriptor used.  Pertinent only for older versions of B<bash>
+
+=item C<stdlog>
+
+The file descriptor for the I<stdlog> stream.
+
+=back
+
+
+=head1 ENVIRONMENT
+
+Default values for global parameters may be read from environment
+variables. By default the variables have a prefix of C<LOGRD_> (note
+the trailing underscore); that may be changed by the L</--env-prefix>
+option when loding B<logrd>
+
+The following variables are recognized; see the similarly named
+options in L</Loading> for more information
+
+ <PREFIX_>COPY_TO_CONSOLE
+ <PREFIX_>COPY_TO_STREAM
+ <PREFIX_>STARTING_SAVE_FD
+ <PREFIX_>STDLOG_FD
+ <PREFIX_>LOG_LEVEL
+
+
+=head1 AUTHOR
+
+Diab Jerius <djerius@cfa.harvard.edu>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is Copyright (c) 2016 by Smithsonian Astrophysical Observatory.
+
+This is free software, licensed under:
+
+  The GNU General Public License, Version 3, June 2007
+
