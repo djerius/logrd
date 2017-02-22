@@ -42,6 +42,14 @@ _logrd_level_to_int () {
     echo ${!var:-0}
 }
 
+log-to () {
+    local facility=$1
+    shift
+
+    log-$facility "$@"
+
+}
+
 die () {
     echo >&2 "$@"
     exit 1
