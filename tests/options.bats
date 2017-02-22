@@ -2,10 +2,6 @@
 
 load functions
 
-# need this so bats fd's don't get clobbered
-LOGRD_STARTING_SAVE_FD=20
-
-
 @test "source default options" {(
 
     set -eu

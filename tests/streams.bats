@@ -2,9 +2,6 @@
 
 load functions
 
-# need this so bats fd's don't get clobbered
-LOGRD_STARTING_SAVE_FD=20
-
 # can't use setup, as we need to run tests in subshell
 # so that bats' stderr/stdout aren't affected
 # and that messes up the stack trace,
