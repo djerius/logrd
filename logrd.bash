@@ -185,7 +185,7 @@ _logrd_dup-fd () {
     # will silently fail.
     _logrd_close-fd $dst
 
-    eval "exec $dst>&$src" || _logrd_errors "error duping $1 >& $2"
+    eval "exec $dst>&$src" || _logrd_errors "error duping: $1>&$2"
 }
 
 _logrd_move-fd () {
@@ -205,7 +205,7 @@ _logrd_redirect-fd () {
     # bash 3.x won't close $dst before redirection, and the redirect
     # will silently fail.
     _logrd_close-fd $dst
-    eval "exec $dst>$2" || _logrd_errors "error redirecting $1 > $2"
+    eval "exec $dst>$2" || _logrd_errors "error redirecting: $1>$2"
 }
 
 
