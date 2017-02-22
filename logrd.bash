@@ -225,11 +225,6 @@ _logrd_close-fds () {
     (( ! error )) || return 1
 }
 
-# tee-fd () {
-#     eval "redirect-fd \$1 >(tee >&$2 >( cat >& $3 ) )"
-# }
-
-
 _logrd_tee-fd () {
     local  redir_fd=$1 tee=$2 thru=$3
 
