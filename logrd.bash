@@ -424,6 +424,8 @@ _logrd_restore-stream () {
 
 logrd-restore-streams () {
 
+    _logrd_reset-errors
+
     local error=0
     local stream
 
