@@ -246,6 +246,9 @@ _logrd_reset-copied-to-console-status () {
 
 # results for reserve-fds are stored here
 declare -a _logrd_RESERVE_FDS
+# does {varname}>&fd work?  _logrd_setup sets thisa
+declare _logrd_auto_fd=0
+
 
 # atomicaly reserve a set of fd's later bash's allow {foo}>&n; this is
 # for those that don't (that's you, Apple)
@@ -262,8 +265,6 @@ _logrd_reserve-fds () {
    local target
    for target; do
 
-       (( fd < 255 )) || break
-
        case $target in
 
 	   --redirect)
@@ -279,13 +280,37 @@ _logrd_reserve-fds () {
        esac
 
        found=0
-       while (( !found && ++fd < 255 )) ; do
-	   if [[ ! -e /dev/fd/$fd ]] ; then
-	       _logrd_${reserve}-fd $fd $target || break
-	       FD+=( $fd )
-	       found=1
-	   fi
-       done
+
+       if (( _logrd_auto_fd )) ; then
+
+	   fd=
+	   case $reserve in
+
+	       redirect )
+		   exec {fd}>$target || _logrd_errors "failed to redirect {varnum}>$target" || break
+		   ;;
+
+	       dup )
+		   exec {fd}>&$target || _logrd_errors "failed to dup {varnum}>&$target" || break
+		   ;;
+	   esac
+
+	   FD+=( $fd )
+	   found=1
+
+       else
+
+	   (( fd < 255 )) || break
+
+	   while (( !found && ++fd < 255 )) ; do
+	       if [[ ! -e /dev/fd/$fd ]] ; then
+		   _logrd_${reserve}-fd $fd $target || break
+		   FD+=( $fd )
+		   found=1
+	       fi
+	   done
+
+       fi
 
        (( ! found )) && break
    done
@@ -293,7 +318,7 @@ _logrd_reserve-fds () {
    # rollback reservations if we've failed to reserve enough
    if (( !found )); then
 
-       _logrd_close-fds ${FD[*]}
+       (( ${#FD[*]} )) && _logrd_close-fds ${FD[*]}
        _logrd_errors "failed to reserve enough file descriptors"
        return 1
    fi
@@ -349,6 +374,12 @@ _logrd_save-fds () {
 
 _logrd_setup () {
 
+    # check if {varname}>&1 is acceptable. run in subshell else
+    # messes up shell if check fails. this must be done first.
+    if eval "(exec {foo}>&2)" >&/dev/null ; then
+    	_logrd_auto_fd=1
+    fi
+
     _logrd_set-var-from-env COPY_TO_CONSOLE
     _logrd_set-var-from-env COPY_TO_STREAM
     _logrd_set-var-from-env STARTING_SAVE_FD
@@ -366,6 +397,7 @@ _logrd_setup () {
 
     # set log level and make _logrd_LOG_LEVEL an integer
     logrd-set level ${_logrd_LOG_LEVEL}
+
 
     return 0
 }
