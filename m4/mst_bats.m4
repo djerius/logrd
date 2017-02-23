@@ -1,5 +1,5 @@
 # unpack bats source
-# serial 1
+# serial 2
 
 # MST_BATS
 #----------
@@ -19,7 +19,7 @@ AC_CACHE_CHECK([for BATS],[mst_cv_prog_bats],
 		    [mst_cv_prog_bats=$srcdir/tests/bats/bin/bats],
 		    [AC_CHECK_FILE([tests/bats/bin/bats],
 				   [mst_cv_prog_bats=tests/bats/bin/bats],
-				   [AC_MSG_ERROR([bats is not bundled; please specify it with --with-bats])]
+				   [AC_MSG_ERROR([bats is not bundled; please specify it with --with-bats (see https://github.com/sstephenson/bats/releases)])]
 				   )
 		    ]
            )
