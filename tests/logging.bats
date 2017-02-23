@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bats
 
 load functions
 
