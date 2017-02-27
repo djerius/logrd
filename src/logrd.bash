@@ -20,7 +20,7 @@ _logrd_create-log-facilities () {
 	    log-$facility '() {'                                \
 	    "if (( _logrd_LOG_LEVEL >= $log_level )); then"     \
 	    "local fd=\${_logrd_REDIR_FD[$_logrd_stdlog_idx]};" \
-	    "echo \"\$@\">&\$fd ;"				\
+	    'logrd-format-message '$facility' "$@">&$fd ;'	\
 	    "fi;" \						\
 	    "}"
 
@@ -47,7 +47,12 @@ log-to () {
     shift
 
     log-$facility "$@"
+}
 
+logrd-format-message () {
+    local facility=$1
+    shift
+    echo "$@"
 }
 
 die () {

@@ -95,6 +95,15 @@ The file descriptor associated with I<stdlog> may be obtained via
 the L</logrd-get> command.
 
 
+=head3 Log Formatting
+
+The L<< C<logrd-format-message>|/logrd-formt-message >> function is
+responsible for formatting the message which will be output.  It is
+passed the log level as well as the message to be logged, and should
+write the formatted message to the standard output stream.  The
+default version performs no transformation on the message.
+
+
 =head2 Background
 
 Stream redirection in the bash shell is usually accomplished either by
@@ -298,7 +307,7 @@ Restore the streams to their state when B<logrd> was loaded.
 
 =head3 log-to
 
-  log-to <log-level> message
+  log-to $log_level $message
 
 Write the message to the I<stdlog> stream if the log level is at least
 that specified.  The I<log-level> may be one of
@@ -327,11 +336,20 @@ Write the message to the I<stdlog> stream if the log level is at least
 that specified.
 
 
+=head3 logrd-format-message
+
+  logrd-format-message $level $message
+
+Format a message which is to be logged at level C<$level> and write it
+to the standard output stream.  This function is used by B<logrd> to
+format log messages.  It may be redefined to change the behavior from
+the default, which is to output the message without transformation.
+
 =head2 Global Attributes
 
 =head3 logrd-set
 
-  logrd-set attribute value
+  logrd-set $attribute $value
 
 Set a global attribute.  The following attributes are available:
 

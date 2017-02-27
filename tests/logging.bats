@@ -51,3 +51,35 @@ load functions
     done
 
 )}
+
+@test "format" {(
+
+    set -eu
+    save-fds
+    source logrd.bash --log-level warn
+
+    tmpdir=$(mktmpdir)
+    logfile=$tmpdir/stdlog
+
+    trap "rm -rf $tmpdir" EXIT
+    trap "trap - EXIT ; error See $tmpdir" ERR
+
+    logrd-set level warn
+    ok logrd-redirect-streams $logfile stdlog '${logrd_ERRORS[*]}'
+
+    logrd-format-message () {
+        local facility=$1
+    	shift
+    	echo "$facility: $@"
+    }
+
+    log-to error log1
+    log-to warn  log2
+
+    ok logrd-restore-streams stdlog '${logrd_ERRORS[*]}'
+
+    log=$(< $logfile )
+
+    is "$log" $'error: log1\nwarn: log2' 'test string'
+
+)}
