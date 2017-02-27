@@ -321,8 +321,10 @@ load functions
     ok logrd-restore-streams ${streams[*]} '${logrd_ERRORS[*]}'
 
     # restore "console"
-    exec 1>&51
-    exec 2>&52
+    exec 1>&-
+    exec 1>&51-
+    exec 2>&-
+    exec 2>&52-
 
     for stream in ${streams[*]} ; do
     	_logrd_stream-idx $stream || error '${logrd_ERRORS[*]}'
@@ -471,8 +473,10 @@ load functions
     ok logrd-restore-streams stderr stdout stdlog '${logrd_ERRORS[*]}'
 
     # restore "console"
-    exec 1>&51
-    exec 2>&52
+    exec 1>&-
+    exec 1>&51-
+    exec 2>&-
+    exec 2>&52-
 
     for stream in stdout stderr stdlog ; do
     	_logrd_stream-idx $stream || error '${logrd_ERRORS[*]}'
