@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.57])
 
-AC_INIT([logrd],[0.03],[opticsoft@head.cfa.harvard.edu],[logrd])
+AC_INIT([logrd],[0.04],[opticsoft@head.cfa.harvard.edu],[logrd])
 AC_CONFIG_SRCDIR([src/logrd.bash])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
