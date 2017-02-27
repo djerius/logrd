@@ -90,6 +90,14 @@ stream, but may be redirected:
 The file descriptor associated with _stdlog_ may be obtained via
 the ["logrd-get"](#logrd-get) command.
 
+### Log Formatting
+
+The [`logrd-format-message`](#logrd-formt-message) function is
+responsible for formatting the message which will be output.  It is
+passed the log level as well as the message to be logged, and should
+write the formatted message to the standard output stream.  The
+default version performs no transformation on the message.
+
 ## Background
 
 Stream redirection in the bash shell is usually accomplished either by
@@ -267,7 +275,7 @@ Restore the streams to their state when **logrd** was loaded.
 
 ### log-to
 
-    log-to <log-level> message
+    log-to $log_level $message
 
 Write the message to the _stdlog_ stream if the log level is at least
 that specified.  The _log-level_ may be one of
@@ -295,11 +303,20 @@ The current log level may be obtained via ["logrd-get"](#logrd-get)
 Write the message to the _stdlog_ stream if the log level is at least
 that specified.
 
+### logrd-format-message
+
+    logrd-format-message $level $message
+
+Format a message which is to be logged at level `$level` and write it
+to the standard output stream.  This function is used by **logrd** to
+format log messages.  It may be redefined to change the behavior from
+the default, which is to output the message without transformation.
+
 ## Global Attributes
 
 ### logrd-set
 
-    logrd-set attribute value
+    logrd-set $attribute $value
 
 Set a global attribute.  The following attributes are available:
 
