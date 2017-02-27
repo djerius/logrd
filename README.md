@@ -4,7 +4,8 @@ logrd - bash logging and stream redirection library
 
 # SYNOPSIS
 
-    source logrd.bash <options>
+    source logrd.bash
+    logrd-setup --copy-to-console
 
     logrd-set level warn
 
@@ -131,7 +132,15 @@ results in both phrases being written to _file_.
 
 To load the **logrd** library, simply source it:
 
-    source logrd.bash I<options>
+    source logrd.bash
+
+To efficiently initialize settings, use ["logrd-setup"](#logrd-setup)
+
+## logrd-setup
+
+    logrd-setup <options>
+
+Initialize settings.  This should be performed before any logging is performed.
 
 The available options are:
 

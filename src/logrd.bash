@@ -380,7 +380,13 @@ _logrd_save-fds () {
     return 0
 }
 
-_logrd_setup () {
+_logrd_init () {
+
+    _logrd_ENV_PREFIX=LOGRD_
+    _logrd_STARTING_SAVE_FD=20
+    _logrd_COPY_TO_CONSOLE=0
+    _logrd_COPY_TO_STREAM=0
+    _logrd_STDLOG_FD=2
 
     # check if {varname}>&1 is acceptable. run in subshell else
     # messes up shell if check fails. this must be done first.
@@ -388,16 +394,24 @@ _logrd_setup () {
     	_logrd_auto_fd=1
     fi
 
-    _logrd_set-var-from-env COPY_TO_CONSOLE
-    _logrd_set-var-from-env COPY_TO_STREAM
-    _logrd_set-var-from-env STARTING_SAVE_FD
-    _logrd_set-var-from-env STDLOG_FD
-
     _logrd_save-fds
 
     _logrd_reset-copied-to-console-status
 
     _logrd_create-log-facilities
+
+    logrd-set level warn
+
+    return 0
+
+}
+
+_logrd_setup () {
+
+    _logrd_set-var-from-env COPY_TO_CONSOLE
+    _logrd_set-var-from-env COPY_TO_STREAM
+    _logrd_set-var-from-env STARTING_SAVE_FD
+    _logrd_set-var-from-env STDLOG_FD
 
     # this is a bit of a cheat, as _logrd_LOG_LEVEL normally is an
     # integer, and the passed log level is a string
@@ -406,6 +420,10 @@ _logrd_setup () {
     # set log level and make _logrd_LOG_LEVEL an integer
     logrd-set level ${_logrd_LOG_LEVEL}
 
+    # resave fds based upon options to logrd_setup
+    unset _logrd_SAVED_FD[0]
+    _logrd_close-fds ${_logrd_SAVED_FD[*]} ${_logrd_REDIR_FD[$_logrd_stdlog_idx]}
+    _logrd_save-fds
 
     return 0
 }
@@ -619,83 +637,81 @@ logrd-redirect-streams () {
 
 ################################################################################
 
-_logrd_ENV_PREFIX=LOGRD_
-_logrd_STARTING_SAVE_FD=20
-_logrd_LOG_LEVEL=warn
-_logrd_COPY_TO_CONSOLE=0
-_logrd_COPY_TO_STREAM=0
-_logrd_STDLOG_FD=2
+logrd-setup () {
 
-while (( $#  )) ;
-do
-    case "$1" in
+    while (( $#  )) ;
+    do
+	case "$1" in
 
-	--copy-to-console)
-	    _logrd_COPY_TO_CONSOLE=1
-	    ;;
+	    --copy-to-console)
+		_logrd_COPY_TO_CONSOLE=1
+		;;
 
-       --no-copy-to-console)
-	    _logrd_COPY_TO_CONSOLE=0
-	    ;;
+	   --no-copy-to-console)
+		_logrd_COPY_TO_CONSOLE=0
+		;;
 
-       --copy-to-stream)
-	    _logrd_COPY_TO_STREAM=1
-            ;;
+	   --copy-to-stream)
+		_logrd_COPY_TO_STREAM=1
+		;;
 
-       --no-copy-to-stream)
-	    _logrd_COPY_TO_STREAM=0
-            ;;
+	   --no-copy-to-stream)
+		_logrd_COPY_TO_STREAM=0
+		;;
 
-	-q|--quiet )
-	    _logrd_LOG_LEVEL=error
-	    ;;
+	    -q|--quiet )
+		_logrd_LOG_LEVEL=error
+		;;
 
-	--env-prefix)
-	    shift
-	    _logrd_ENV_PREFIX=$1
-	    ;;
+	    --env-prefix)
+		shift
+		_logrd_ENV_PREFIX=$1
+		;;
 
-	--env-prefix=*)
-	    _logrd_ENV_PREFIX=${1:#--env-prefix=}
-	    ;;
+	    --env-prefix=*)
+		_logrd_ENV_PREFIX=${1:#--env-prefix=}
+		;;
 
-	--starting-save-fd)
-	    shift
-	    _logrd_STARTING_SAVE_FD=$1
-	    ;;
+	    --starting-save-fd)
+		shift
+		_logrd_STARTING_SAVE_FD=$1
+		;;
 
-	--starting-save-fd=*)
-	    _logrd_STARTING_SAVE_FD=${1#--starting-save-fd=}
-	    ;;
+	    --starting-save-fd=*)
+		_logrd_STARTING_SAVE_FD=${1#--starting-save-fd=}
+		;;
 
-	--stdlog-fd)
-	    shift
-	    _logrd_STDLOG_FD=$1
-	    ;;
+	    --stdlog-fd)
+		shift
+		_logrd_STDLOG_FD=$1
+		;;
 
-	--stdlog-fd=*)
-	    _logrd_STDLOG_FD=${1#--stdlog-fd=}
-	    ;;
+	    --stdlog-fd=*)
+		_logrd_STDLOG_FD=${1#--stdlog-fd=}
+		;;
 
-	--log-level)
-	    shift
-	    _logrd_LOG_LEVEL=$1
-	    ;;
+	    --log-level)
+		shift
+		_logrd_LOG_LEVEL=$1
+		;;
 
-	--log-level=*)
-	    _logrd_LOG_LEVEL=${1#--log-level=}
-	    ;;
+	    --log-level=*)
+		_logrd_LOG_LEVEL=${1#--log-level=}
+		;;
 
-	*)
-	   die "uknown option to logrd: $1"
-	   ;;
+	    *)
+	       die "uknown option to logrd: $1"
+	       ;;
 
-    esac
+	esac
 
-    shift
+	shift
 
-done
+    done
 
-_logrd_setup
+  _logrd_setup
 
+}
+
+_logrd_init
 

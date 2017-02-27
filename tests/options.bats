@@ -21,7 +21,8 @@ load functions
     save-fds
 
     unset LOGRD_STARTING_SAVE_FD
-    source logrd.bash --log-level info --copy-to-console --copy-to-stream --starting-save-fd 13
+    source logrd.bash
+    logrd-setup  --log-level info --copy-to-console --copy-to-stream --starting-save-fd 13
 
     is "$(logrd-get level)" info level
     ok logrd-get copy_to_console copy_to_console
@@ -36,7 +37,8 @@ load functions
     save-fds
 
     unset LOGRD_STARTING_SAVE_FD
-    source logrd.bash --log-level=info --copy-to-console --copy-to-stream --starting-save-fd=13
+    source logrd.bash
+    logrd-setup --log-level=info --copy-to-console --copy-to-stream --starting-save-fd=13
 
     is "$(logrd-get level)"  info level
     ok logrd-get copy_to_console copy_to_console

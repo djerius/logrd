@@ -56,7 +56,9 @@ load functions
 
     set -eu
     save-fds
-    source logrd.bash --log-level warn
+    source logrd.bash
+
+    logrd-set level warn
 
     tmpdir=$(mktmpdir)
     logfile=$tmpdir/stdlog

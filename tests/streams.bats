@@ -295,7 +295,8 @@ load functions
     exec 1>$tmpdir/stdout-console
     exec 2>$tmpdir/stderr-console
 
-    source logrd.bash --copy-to-console --stdlog-fd 53
+    source logrd.bash
+    logrd-setup --copy-to-console --stdlog-fd 53
 
     local -a streams=( stderr stdlog )
 
@@ -365,7 +366,8 @@ load functions
 	echo "${teststring[3]}" >&$stdlog
     }
 
-    source logrd.bash --stdlog-fd 53
+    source logrd.bash
+    logrd-setup --stdlog-fd 53
 
     local stream
     for stream in stdout stderr stdlog ; do
@@ -432,7 +434,8 @@ load functions
 	echo "${teststring[3]}" >&$stdlog
     }
 
-    source logrd.bash --stdlog-fd 53
+    source logrd.bash
+    logrd-setup  --stdlog-fd 53
 
     # write to stream1
     local stream
