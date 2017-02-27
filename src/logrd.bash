@@ -380,13 +380,34 @@ _logrd_save-fds () {
     return 0
 }
 
+_logrd_init-from-env () {
+
+    _logrd_set-var-from-env COPY_TO_CONSOLE
+    _logrd_set-var-from-env COPY_TO_STREAM
+    _logrd_set-var-from-env STARTING_SAVE_FD
+    _logrd_set-var-from-env STDLOG_FD
+
+    # # this is a bit of a cheat, as _logrd_LOG_LEVEL normally is an
+    # # integer, and the passed log level is a string
+    _logrd_set-var-from-env LOG_LEVEL
+
+    # # set log level and make _logrd_LOG_LEVEL an integer
+    logrd-set level ${_logrd_LOG_LEVEL}
+}
+
 _logrd_init () {
 
+    _logrd_create-log-facilities
+
     _logrd_ENV_PREFIX=LOGRD_
-    _logrd_STARTING_SAVE_FD=20
     _logrd_COPY_TO_CONSOLE=0
     _logrd_COPY_TO_STREAM=0
+    _logrd_STARTING_SAVE_FD=20
     _logrd_STDLOG_FD=2
+
+    _logrd_LOG_LEVEL=warn
+
+    _logrd_init-from-env
 
     # check if {varname}>&1 is acceptable. run in subshell else
     # messes up shell if check fails. this must be done first.
@@ -398,9 +419,6 @@ _logrd_init () {
 
     _logrd_reset-copied-to-console-status
 
-    _logrd_create-log-facilities
-
-    logrd-set level warn
 
     return 0
 
@@ -408,17 +426,7 @@ _logrd_init () {
 
 _logrd_setup () {
 
-    _logrd_set-var-from-env COPY_TO_CONSOLE
-    _logrd_set-var-from-env COPY_TO_STREAM
-    _logrd_set-var-from-env STARTING_SAVE_FD
-    _logrd_set-var-from-env STDLOG_FD
-
-    # this is a bit of a cheat, as _logrd_LOG_LEVEL normally is an
-    # integer, and the passed log level is a string
-    _logrd_set-var-from-env LOG_LEVEL
-
-    # set log level and make _logrd_LOG_LEVEL an integer
-    logrd-set level ${_logrd_LOG_LEVEL}
+    _logrd_init-from-env
 
     # resave fds based upon options to logrd_setup
     unset _logrd_SAVED_FD[0]
