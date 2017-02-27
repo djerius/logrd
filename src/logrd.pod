@@ -429,11 +429,11 @@ option when loding B<logrd>
 The following variables are recognized; see the similarly named
 options in L</Loading> for more information
 
- <PREFIX_>COPY_TO_CONSOLE
- <PREFIX_>COPY_TO_STREAM
- <PREFIX_>STARTING_SAVE_FD
- <PREFIX_>STDLOG_FD
- <PREFIX_>LOG_LEVEL
+ <PREFIX>COPY_TO_CONSOLE
+ <PREFIX>COPY_TO_STREAM
+ <PREFIX>STARTING_SAVE_FD
+ <PREFIX>STDLOG_FD
+ <PREFIX>LOG_LEVEL
 
 
 =head1 AUTHOR
